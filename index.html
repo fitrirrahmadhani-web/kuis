@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kuis Sang Juara — Teks Berita</title>
+<style>
+:root{
+  --navy1:#020318; --navy2:#050b3d; --navy3:#0a1a6b;
+  --gold:#ffd24d; --gold2:#ffb700; --blue-glow:#1e3fd8;
+  --correct:#1fae5c; --wrong:#d8361e; --text:#eaf0ff;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  box-sizing:border-box;
+}
+*{box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  margin:0; min-height:100%; font-family:'Segoe UI',Arial,sans-serif; color:var(--text);
+  background:
+    radial-gradient(ellipse at 50% -10%, var(--navy3) 0%, var(--navy2) 45%, var(--navy1) 100%);
+  overflow-x:hidden;
+}
+.wrap{max-width:1200px;margin:0 auto;padding:16px 14px 40px;}
+header{text-align:center;padding:14px 0 6px;}
+h1{
+  font-size:clamp(22px,4vw,38px); margin:0; letter-spacing:1px;
+  background:linear-gradient(180deg,#fff8e0,var(--gold) 55%,#a67200);
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+  text-shadow:0 0 24px rgba(255,196,60,.35);
+  font-weight:800;
+}
+.sub{color:#9fb0ff;font-size:14px;margin-top:4px;}
+
+.stage{
+  display:grid; grid-template-columns:1fr 250px; gap:18px; margin-top:22px;
+}
+@media (max-width:800px){ .stage{grid-template-columns:1fr;} .ladder{order:2;} }
+
+.board{
+  background:linear-gradient(160deg,#081450,#020318 70%);
+  border:2px solid var(--gold2); border-radius:18px; padding:22px;
+  box-shadow:0 0 40px rgba(30,63,216,.45), inset 0 0 60px rgba(30,63,216,.25);
+  position:relative; overflow:hidden; min-height:420px;
+  display:flex; flex-direction:column;
+}
+.qcount{color:var(--gold); font-weight:700; font-size:14px; margin-bottom:10px;}
+.qbox{
+  background:linear-gradient(180deg,#0d1c6f,#081049);
+  border:1px solid var(--blue-glow); border-radius:12px; padding:20px;
+  font-size:clamp(16px,2.4vw,20px); line-height:1.5; min-height:96px;
+  display:flex; align-items:center; text-align:center; justify-content:center;
+}
+.answers{
+  display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:16px;
+}
+@media (max-width:520px){.answers{grid-template-columns:1fr;}}
+.opt{
+  background:linear-gradient(180deg,#0d1c6f,#081049);
+  border:1px solid var(--blue-glow); border-radius:30px;
+  color:var(--text); padding:14px 18px; font-size:15px; text-align:left;
+  cursor:pointer; transition:transform .12s, background .3s, border-color .3s;
+  display:flex; gap:10px; align-items:center;
+}
+.opt:hover:not(.locked){transform:translateX(4px); border-color:var(--gold);}
+.opt b{color:var(--gold);}
+.opt.selected{background:linear-gradient(180deg,#5a4400,#8a6a00); border-color:var(--gold); animation:pulse 1s infinite;}
+.opt.correct{background:linear-gradient(180deg,#0d5a2e,#14a04e)!important; border-color:#7cffb0!important; animation:none;}
+.opt.wrong{background:linear-gradient(180deg,#6b1408,#a52012)!important; border-color:#ff8f7c!important; animation:none;}
+.opt.dim{opacity:.25; pointer-events:none;}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 rgba(255,210,77,.5);}50%{box-shadow:0 0 18px rgba(255,210,77,.7);}}
+
+.lifelines{display:flex; gap:10px; margin-top:18px; flex-wrap:wrap;}
+.life{
+  width:54px; height:54px; border-radius:50%; border:2px solid var(--gold2);
+  background:radial-gradient(circle at 35% 30%, #1c2a80, #060b33);
+  color:var(--gold); font-weight:700; font-size:12px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; text-align:center; line-height:1.1;
+}
+.life:disabled{opacity:.25; cursor:not-allowed;}
+.controls{display:flex; gap:10px; margin-top:18px; flex-wrap:wrap;}
+.btn{
+  padding:10px 18px; border-radius:24px; border:1px solid var(--gold2); cursor:pointer;
+  background:linear-gradient(180deg,#2a2000,#584500); color:var(--gold); font-weight:700; font-size:14px;
+}
+.btn:hover{filter:brightness(1.2);}
+.btn:disabled{opacity:.3;cursor:not-allowed;}
+
+.ladder{
+  background:linear-gradient(160deg,#081450,#020318 70%);
+  border:2px solid var(--gold2); border-radius:18px; padding:14px 10px;
+  display:flex; flex-direction:column-reverse; gap:4px; height:fit-content;
+}
+.rung{
+  display:flex; justify-content:space-between; padding:6px 10px; border-radius:6px;
+  font-size:13px; color:#c9d4ff;
+}
+.rung.safe{color:var(--gold); font-weight:700;}
+.rung.active{background:var(--gold); color:#20160a; font-weight:800; box-shadow:0 0 14px rgba(255,210,77,.6);}
+.rung.done{color:#7cffb0;}
+
+.modal-bg{
+  position:fixed; inset:0; background:rgba(0,0,0,.65); display:none;
+  align-items:center; justify-content:center; z-index:50; padding:16px;
+}
+.modal-bg.show{display:flex;}
+.modal{
+  background:linear-gradient(160deg,#0d1c6f,#020318); border:2px solid var(--gold2);
+  border-radius:16px; padding:24px; max-width:420px; text-align:center;
+}
+.modal h3{color:var(--gold); margin-top:0;}
+.bar{background:#0a1a6b; border-radius:6px; overflow:hidden; margin:6px 0; height:22px; display:flex; align-items:center;}
+.bar-fill{background:linear-gradient(90deg,#1fae5c,#7cffb0); height:100%; display:flex; align-items:center; padding-left:6px; font-size:12px; color:#04220f; font-weight:700;}
+.bar-row{display:grid; grid-template-columns:22px 1fr; gap:8px; align-items:center; margin-bottom:6px; text-align:left;}
+
+.endscreen{text-align:center; padding:30px 10px;}
+.endscreen .amt{font-size:clamp(28px,6vw,48px); color:var(--gold); font-weight:800; margin:10px 0;}
+footer{text-align:center; color:#7e8bc4; font-size:12px; margin-top:26px;}
+
+@media (prefers-color-scheme: light){
+  body{background:radial-gradient(ellipse at 50% -10%, var(--navy3) 0%, var(--navy1) 100%);}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>KUIS SANG JUARA</h1>
+    <div class="sub">Teks Berita · Bahasa Indonesia Kelas 11</div>
+  </header>
+
+  <div class="stage">
+    <div class="board" id="board"></div>
+    <div class="ladder" id="ladder"></div>
+  </div>
+
+  <footer>Dibuat untuk pembelajaran teks berita · efek suara disintesis, bukan rekaman berhak cipta</footer>
+</div>
+
+<div class="modal-bg" id="modalBg">
+  <div class="modal" id="modalContent"></div>
+</div>
+
+<script>
+const MONEY = [
+  "Rp100.000","Rp200.000","Rp300.000","Rp500.000","Rp1.000.000",
+  "Rp2.000.000","Rp4.000.000","Rp8.000.000","Rp16.000.000","Rp32.000.000",
+  "Rp64.000.000","Rp125.000.000","Rp250.000.000","Rp500.000.000","Rp1.000.000.000"
+];
+const SAFE = [4,9]; // index of safe havens (Q5 & Q10)
+
+const QUESTIONS = [
+{q:"Apa yang dimaksud dengan teks berita?",o:["Teks berisi imajinasi pengarang","Teks yang menyampaikan informasi aktual dan faktual tentang suatu peristiwa","Teks berisi pendapat pribadi penulis","Teks berisi langkah-langkah kegiatan"],c:1},
+{q:"Struktur teks berita umumnya mengikuti pola...",o:["Sebab-akibat","Piramida terbalik","Deduktif-induktif","Kronologis mundur"],c:1},
+{q:"Bagian teks berita yang berisi ringkasan inti peristiwa di awal disebut...",o:["Ekor berita","Tubuh berita","Teras berita (lead)","Judul berita"],c:2},
+{q:"Unsur berita yang dikenal dengan singkatan ADIKSIMBA adalah...",o:["Apa, di mana, kapan, siapa, mengapa, bagaimana","Apa, di mana, kapan, siapa, mengapa, berapa","Siapa, apa, bagaimana, kapan, di mana, berapa","Apa, mengapa, siapa, kapan, di mana, untuk apa"],c:0},
+{q:"Judul berita yang baik sebaiknya bersifat...",o:["Panjang dan berbelit-belit","Singkat, padat, dan menarik perhatian pembaca","Berisi opini penulis","Ditulis dengan bahasa daerah"],c:1},
+{q:"Kalimat 'Menurut Kepala BMKG, gempa itu berkekuatan 6,2 SR' termasuk kalimat...",o:["Langsung","Tidak langsung","Majemuk setara","Tanya"],c:1},
+{q:"Ciri kalimat langsung dalam teks berita ditandai dengan...",o:["Tanda kutip ('...')","Tanpa tanda baca","Konjungsi 'bahwa'","Kata tanya di awal"],c:0},
+{q:"Kata seperti 'mengatakan', 'mengungkapkan', 'menjelaskan' untuk melaporkan ucapan narasumber disebut...",o:["Verba material","Verba pewarta","Verba mental","Verba relasional"],c:1},
+{q:"Konjungsi seperti 'kemudian', 'setelah itu', 'lalu' dalam berita termasuk konjungsi...",o:["Temporal","Kausalitas","Pertentangan","Penambahan"],c:0},
+{q:"Perbedaan mendasar fakta dan opini dalam teks berita adalah...",o:["Fakta berupa kejadian nyata yang dapat dibuktikan, opini berupa pandangan seseorang","Fakta selalu ditulis di awal, opini di akhir","Fakta memakai huruf kapital","Opini hanya ditulis wartawan senior"],c:0},
+{q:"Bagian akhir teks berita yang biasanya berisi informasi tambahan disebut...",o:["Teras berita","Tubuh berita","Ekor berita","Kepala berita"],c:2},
+{q:"Saat menyunting teks berita, hal utama yang diperhatikan adalah...",o:["Kesesuaian isi dengan fakta, keefektifan kalimat, dan ejaan","Memperbanyak istilah asing","Menambahkan opini pribadi","Mengubah struktur menjadi cerita fiksi"],c:0},
+{q:"Keterangan tempat dan waktu dalam kalimat berita berfungsi untuk...",o:["Memperindah bahasa semata","Memberi konteks kapan dan di mana peristiwa terjadi","Mengganti judul berita","Menghilangkan unsur 'siapa'"],c:1},
+{q:"Media massa idealnya menyampaikan berita secara...",o:["Subjektif dan memihak","Objektif, aktual, dan berimbang","Berdasarkan opini redaksi semata","Sesuai keinginan pembaca"],c:1},
+{q:"Prinsip 'cover both side' dalam penulisan berita berarti...",o:["Berita ditulis dua kali","Wartawan menampilkan sudut pandang kedua belah pihak agar berimbang","Berita hanya boleh dari satu sumber","Berita harus dua halaman"],c:1}
+];
+
+let cur=0, locked=false, lifelines={fifty:true,friend:true,audience:true};
+const board=document.getElementById('board'), ladderEl=document.getElementById('ladder');
+
+// ---- synthesized sound effects (no copyrighted audio) ----
+let actx;
+function ac(){ if(!actx) actx=new (window.AudioContext||window.webkitAudioContext)(); return actx; }
+function tone(freq,dur,type='sine',vol=.15,delay=0){
+  const c=ac(), o=c.createOscillator(), g=c.createGain();
+  o.type=type; o.frequency.value=freq; o.connect(g); g.connect(c.destination);
+  g.gain.setValueAtTime(vol, c.currentTime+delay);
+  g.gain.exponentialRampToValueAtTime(.001, c.currentTime+delay+dur);
+  o.start(c.currentTime+delay); o.stop(c.currentTime+delay+dur);
+}
+function sndSelect(){ tone(500,.08,'triangle',.1); }
+function sndCorrect(){ [523,659,784,1046].forEach((f,i)=>tone(f,.25,'sine',.12,i*.12)); }
+function sndWrong(){ tone(140,.4,'sawtooth',.15); tone(100,.5,'sawtooth',.12,.05); }
+function sndTick(){ tone(880,.05,'square',.04); }
+
+function renderLadder(){
+  ladderEl.innerHTML='';
+  MONEY.forEach((m,i)=>{
+    const d=document.createElement('div');
+    d.className='rung'+(SAFE.includes(i)?' safe':'')+(i===cur?' active':'')+(i<cur?' done':'');
+    d.innerHTML=`<span>${i+1}</span><span>${m}</span>`;
+    ladderEl.appendChild(d);
+  });
+}
+
+function renderQuestion(){
+  locked=false;
+  const q=QUESTIONS[cur];
+  board.innerHTML=`
+    <div class="qcount">SOAL ${cur+1} DARI ${QUESTIONS.length} — Hadiah: ${MONEY[cur]}</div>
+    <div class="qbox">${q.q}</div>
+    <div class="answers" id="answers"></div>
+    <div class="lifelines">
+      <button class="life" id="lf50" ${lifelines.fifty?'':'disabled'}>50:50</button>
+      <button class="life" id="lfFriend" ${lifelines.friend?'':'disabled'}>Tanya<br>Teman</button>
+      <button class="life" id="lfAud" ${lifelines.audience?'':'disabled'}>Tanya<br>Penonton</button>
+    </div>
+    <div class="controls">
+      <button class="btn" id="walkBtn">Ambil Uang &amp; Berhenti</button>
+    </div>`;
+  const letters=['A','B','C','D'];
+  const answersEl=document.getElementById('answers');
+  q.o.forEach((opt,i)=>{
+    const b=document.createElement('div');
+    b.className='opt'; b.dataset.idx=i;
+    b.innerHTML=`<b>${letters[i]}.</b> <span>${opt}</span>`;
+    b.onclick=()=>selectAnswer(i);
+    answersEl.appendChild(b);
+  });
+  document.getElementById('lf50').onclick=useFifty;
+  document.getElementById('lfFriend').onclick=useFriend;
+  document.getElementById('lfAud').onclick=useAudience;
+  document.getElementById('walkBtn').onclick=walkAway;
+  if(cur===0){ document.getElementById('walkBtn').style.visibility='hidden'; }
+  renderLadder();
+}
+
+function selectAnswer(i){
+  if(locked) return; locked=true; sndSelect();
+  const opts=[...document.querySelectorAll('.opt')];
+  opts.forEach(o=>{ if(parseInt(o.dataset.idx)!==i) o.classList.add('dim'); });
+  opts[i].classList.add('selected');
+  setTimeout(()=>{
+    const correct=QUESTIONS[cur].c;
+    opts.forEach(o=>o.classList.remove('dim'));
+    opts[correct].classList.add('correct');
+    if(i!==correct){ opts[i].classList.add('wrong'); sndWrong(); }
+    else sndCorrect();
+    setTimeout(()=>{
+      if(i===correct){
+        if(cur===QUESTIONS.length-1) showEnd(true);
+        else { cur++; renderQuestion(); }
+      } else showEnd(false);
+    }, 1400);
+  }, 1200);
+}
+
+function useFifty(){
+  if(!lifelines.fifty) return; lifelines.fifty=false;
+  document.getElementById('lf50').disabled=true;
+  const correct=QUESTIONS[cur].c;
+  const wrongIdx=[0,1,2,3].filter(x=>x!==correct);
+  wrongIdx.sort(()=>Math.random()-.5);
+  wrongIdx.slice(0,2).forEach(idx=>{
+    const el=document.querySelector(`.opt[data-idx='${idx}']`);
+    el.classList.add('dim'); el.onclick=null;
+  });
+  tone(660,.1,'triangle',.1);
+}
+function useFriend(){
+  if(!lifelines.friend) return; lifelines.friend=false;
+  document.getElementById('lfFriend').disabled=true;
+  const correct=QUESTIONS[cur].c;
+  const sure=Math.random()>0.25; // teman kadang kurang yakin
+  const guess = sure? correct : [0,1,2,3].filter(x=>x!==correct)[Math.floor(Math.random()*3)];
+  const letters=['A','B','C','D'];
+  showModal(`<h3>📞 Tanya Teman</h3><p>"Hmm, menurutku ini teks berita, aku cukup yakin jawabannya <b style="color:var(--gold)">${letters[guess]}</b>. ${sure?'Aku cukup yakin!':'Tapi aku kurang yakin, coba cek lagi ya.'}"</p><button class="btn" onclick="closeModal()">Tutup</button>`);
+}
+function useAudience(){
+  if(!lifelines.audience) return; lifelines.audience=false;
+  document.getElementById('lfAud').disabled=true;
+  const correct=QUESTIONS[cur].c;
+  let perc=[10,10,10,10];
+  let remaining=100-40;
+  perc[correct]=40+Math.floor(Math.random()*35);
+  remaining=100-perc[correct];
+  const others=[0,1,2,3].filter(x=>x!==correct);
+  let left=remaining;
+  others.forEach((idx,i)=>{
+    if(i===others.length-1) perc[idx]=left;
+    else { const v=Math.floor(Math.random()*(left/2)); perc[idx]=v; left-=v; }
+  });
+  const letters=['A','B','C','D'];
+  let rows='';
+  [0,1,2,3].forEach(i=>{
+    rows+=`<div class="bar-row"><span><b>${letters[i]}</b></span><div class="bar"><div class="bar-fill" style="width:${perc[i]}%">${perc[i]}%</div></div></div>`;
+  });
+  showModal(`<h3>👥 Tanya Penonton</h3>${rows}<button class="btn" onclick="closeModal()">Tutup</button>`);
+}
+function showModal(html){
+  document.getElementById('modalContent').innerHTML=html;
+  document.getElementById('modalBg').classList.add('show');
+}
+function closeModal(){ document.getElementById('modalBg').classList.remove('show'); }
+
+function walkAway(){
+  const wonIdx = cur-1<0?-1:cur-1;
+  showEnd(null, wonIdx);
+}
+
+function showEnd(won, walkIdx){
+  let amount, title, msg;
+  if(won===true){ amount=MONEY[QUESTIONS.length-1]; title="🏆 LUAR BIASA!"; msg="Kamu menjawab semua soal dengan benar dan menjadi Sang Juara Teks Berita!"; }
+  else if(won===false){
+    let safeIdx=-1; SAFE.forEach(s=>{ if(s<cur) safeIdx=s; });
+    amount = safeIdx>=0? MONEY[safeIdx] : "Rp0";
+    title="Jawaban Kurang Tepat"; msg=`Kamu berhenti di soal ${cur+1}. Kamu pulang membawa hadiah aman terakhir.`;
+  } else {
+    amount = walkIdx>=0? MONEY[walkIdx] : "Rp0";
+    title="Kamu Berhenti Bermain"; msg="Keputusan bijak! Kamu mengamankan hadiahmu.";
+  }
+  board.innerHTML=`
+    <div class="endscreen">
+      <h2 style="color:var(--gold)">${title}</h2>
+      <p>${msg}</p>
+      <div class="amt">${amount}</div>
+      <button class="btn" onclick="restart()">Main Lagi</button>
+    </div>`;
+  renderLadder();
+}
+
+function restart(){
+  cur=0; lifelines={fifty:true,friend:true,audience:true};
+  renderQuestion();
+}
+document.getElementById('modalBg').onclick=(e)=>{ if(e.target.id==='modalBg') closeModal(); };
+renderQuestion();
+</script>
+</body>
+</html>
